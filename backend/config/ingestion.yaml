@@ -1,0 +1,54 @@
+# ======================================================================================
+# MEDD 2.0 — ingestion & data-quality rules (edit here; no code changes required)
+# ======================================================================================
+
+supported_extensions: [".xlsx", ".xlsm", ".xls", ".csv", ".json"]
+
+# How an INVENTORY file is applied to production:
+#   snapshot : the file is the complete current record for every institute it contains.
+#              Rows previously loaded for those institutes but absent from the new file are
+#              DEACTIVATED (soft, reversible, fully audited) — never physically deleted.
+#   upsert   : insert new rows and update changed rows only; nothing is ever deactivated.
+sync_mode: snapshot
+
+# Header detection: scan this many top rows of each sheet for the header row.
+header_scan_rows: 25
+
+validation:
+  # Fail the WHOLE file (production untouched) if more than this share of rows is rejected.
+  max_reject_ratio: 0.05
+  # Unknown division name in a row -> reject row (true) or fail file (false is stricter? no: see below)
+  reject_unknown_division_rows: true
+  # Institute not yet in master_data:
+  #   create  : create it automatically when the row (or institute sheet) gives a valid division
+  #   reject  : reject the row
+  new_institute_policy: create
+  # Quantities: negative or non-numeric -> reject row. Decimals are rounded only if within this tolerance.
+  integer_tolerance: 0.0001
+  # Data-quality warnings (row still accepted)
+  warn_functional_gt_available: true
+  warn_condemnation_gt_nonfunctional: true
+  warn_amc_gt_functional: true
+  warn_procurement_without_unit_cost: true
+  warn_repeated_business_key: true
+  # Proposed procurement far above the requirement is flagged (NOT changed): proposed > max(min_units, factor × required)
+  # e.g. the master workbook's 46,297 'Calorimeter / Spectrophotometer' at GMC Chh. Sambhaji Nagar (₹175.9 Cr).
+  procurement_outlier_factor: 10
+  procurement_outlier_min_units: 500
+  # Unit cost sanity bounds (warning outside, error if negative)
+  unit_cost_warn_above: 500000000   # ₹50 crore
+
+standardisation:
+  # Treat names that differ only by letter case as the same entity (e.g. "ABG Machine" / "ABG machine").
+  # Set false to reproduce MEDD 1.0 behaviour (1,071 distinct names). See docs/01_SOURCE_CODE_AUDIT.md A7.
+  merge_case_variants: true
+
+# Cost-category fallback when neither the line item nor the costing list provides one.
+# The workbook's own "Cost Category" column is always preferred. Bands are ₹ unit cost, `max` is EXCLUSIVE.
+# Observed: master workbook Low ≤ 1,00,000 < Medium ≤ 9,50,000, High ≥ 10,00,000; MEDD 1.0 cost-map put exactly
+# ₹1,00,000 in Medium. Equipment with no / zero unit cost gets no category (as in the workbook).
+# Set `cost_category_bands: null` to disable the fallback.
+cost_category_bands:
+  - {name: "Low Cost", max: 100000.01}
+  - {name: "Medium Cost", max: 1000000}
+  - {name: "High Cost", max: null}

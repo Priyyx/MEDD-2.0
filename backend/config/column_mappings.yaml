@@ -1,0 +1,88 @@
+# ======================================================================================
+# MEDD 2.0 — Excel/CSV column header mapping rules
+# --------------------------------------------------------------------------------------
+# Each canonical field lists header spellings that map to it. Matching is case-, space-,
+# punctuation- and line-break-insensitive ("Qty. Available " == "qty available").
+# If your workbook uses a header not listed here, ADD IT BELOW — no code change needed.
+# The ingestion report lists every unmapped column so you can see what was ignored.
+#
+# Verified against "Medical_Equipment_Gap_Analysis_Master_Data.xlsx" (Sheet4, 21 columns): all 17 data
+# columns map; the 3 instruction/remarks columns are kept in staging.raw for traceability.
+#
+# A worksheet is classified as a dataset type when all of its `required` fields are found.
+# ======================================================================================
+
+datasets:
+
+  # One row per equipment line item (institute × department × equipment).  THE MASTER DATA.
+  inventory:
+    required: [institute, department, equipment]
+    # At least one of these quantity fields must also be present
+    required_any: [required_qty, available_qty, functional_qty, proposed_qty]
+    fields:
+      division:         ["division", "division name", "region", "administrative division"]
+      district:         ["district", "district name"]
+      institute_short_name: ["short_name", "short name", "institute short name", "abbreviation"]
+      institute:        ["institute", "institute name", "institution", "institution name", "college", "college name",
+                         "medical college", "name of college", "name of the college", "name of institute",
+                         "name of the institute", "gmc", "hospital", "facility", "facility name"]
+      department:       ["department", "department name", "dept", "dept name", "name of department",
+                         "name of the department", "speciality", "specialty"]
+      equipment:        ["equipment", "equipment name", "name of equipment", "name of the equipment", "item",
+                         "item name", "equipment item", "equipment/instrument", "instrument", "description of equipment",
+                         "name of equipment instrument", "equipment list", "list of equipment"]
+      sub_category:     ["sub category", "sub-category", "subcategory", "equipment sub category", "section",
+                         "sub head", "sub-head"]
+      course_category:  ["course category", "course", "course type", "ug/pg/ss", "ug pg ss", "programme", "program"]
+      department_type:  ["department type", "dept type", "type of department", "department category"]
+      cost_category:    ["cost category", "cost type", "cost tier", "costing category", "category of cost"]
+      bedded_capacity:  ["seat capacity", "bedded capacity", "bed capacity", "beds", "no of beds", "bed strength", "seat", "seats",
+                         "intake", "mbbs seats", "annual intake", "intake capacity"]
+      required_qty:     ["required", "quantity required", "qty required", "required qty", "required quantity",
+                         "nmc msr", "nmc requirement", "nmc msr requirement", "msr", "msr quantity", "nmc norm",
+                         "nmr requirement", "requirement as per nmc", "requirement as per nmc msr",
+                         "quantity required as per nmc msr", "quantity required per nmc msr",
+                         "quantity required as per nmc", "required as per nmc", "nmc required"]
+      available_qty:    ["available", "quantity available", "qty available", "available qty", "available quantity",
+                         "quantity of equipment available", "existing", "existing quantity", "quantity existing",
+                         "physically available"]
+      functional_qty:   ["functional", "quantity functional", "qty functional", "functional qty", "functional quantity",
+                         "quantity of functional equipment", "working", "working quantity", "functional equipment"]
+      proposed_qty:     ["procurement", "proposed procurement", "quantity proposed", "quantity proposed for procurement",
+                         "quantity proposed for new procurement", "new procurement", "proposed qty",
+                         "procurement qty", "procurement quantity", "qty proposed", "proposed quantity",
+                         "quantity to be procured", "suggested procurement"]
+      amc_cmc_qty:      ["amc", "cmc", "amc/cmc", "amc cmc", "under amc", "under amc/cmc", "amc/cmc qty",
+                         "quantity under amc", "quantity under amc/cmc", "quantity under active amc/cmc",
+                         "amc cmc quantity", "units under amc/cmc"]
+      end_of_life_qty:  ["end of life", "eol", "approaching end of life", "quantity approaching end of life",
+                         "quantity approaching end-of-life", "eol qty", "end of life qty",
+                         "quantity approaching end of life (<1 fy)", "approaching eol"]
+      condemnation_qty: ["condemnation", "proposed condemnation", "quantity proposed for condemnation",
+                         "condemnation qty", "qty for condemnation", "to be condemned"]
+      unit_cost:        ["costing", "unit cost", "unit cost (rs)", "unit cost rs", "unit price", "rate", "cost per unit",
+                         "estimated unit cost", "unit rate"]
+      remarks:          ["remarks", "remarks if any", "remark", "comments"]
+
+  # Unique-equipment costing list (equipment -> unit cost)
+  unit_cost:
+    required: [equipment, unit_cost]
+    forbid: [institute]          # a sheet with an institute column is inventory, not a costing list
+    fields:
+      equipment:        ["equipment", "equipment name", "name of equipment", "item", "item name", "unique equipment",
+                         "unique equipment name", "description"]
+      unit_cost:        ["costing", "unit cost", "unit cost (rs)", "unit cost rs", "unit price", "rate", "cost per unit",
+                         "estimated unit cost", "unit rate", "cost", "price"]
+      cost_category:    ["cost category", "cost type", "cost tier", "category"]
+
+  # Institute master (optional): institute -> division, bedded capacity
+  institute:
+    required: [institute, division]
+    forbid: [equipment]
+    fields:
+      institute:        ["institute", "institute name", "institution", "college", "college name", "medical college",
+                         "name of college", "name of institute"]
+      division:         ["division", "division name", "region"]
+      district:         ["district", "district name"]
+      bedded_capacity:  ["seat capacity", "bedded capacity", "bed capacity", "beds", "no of beds", "seat", "seats",
+                         "intake", "mbbs seats", "annual intake"]

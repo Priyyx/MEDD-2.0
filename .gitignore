@@ -1,0 +1,13 @@
+backend/.env
+backend/data/incoming/*
+backend/data/processing/*
+backend/data/processed/*
+backend/data/failed/*
+backend/data/archive/*
+backend/data/reports/*
+!backend/data/**/.gitkeep
+backend/backups/
+__pycache__/
+.pytest_cache/
+*.pyc
+.venv/

@@ -1,0 +1,20 @@
+# Netlify config for the standalone MEDD Maharashtra dashboard.
+# This is a pure static site — a single self-contained index.html with all
+# data embedded. No build step and no backend are required.
+
+[build]
+  publish = "."
+  command = ""
+
+# SPA-style fallback (harmless for a single page; keeps deep links working).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MEDD Maharashtra — Medical Equipment Decision Support Dashboard</title>
+<!-- MEDD 2.0: same visual framework as 1.0 — Chart.js 4.4.1 + chartjs-plugin-datalabels 2.2.0 (identical versions),
+     now served locally from /static/assets/vendor so the dashboard also works on an intranet without CDN access. -->
+<script src="/static/assets/vendor/chart.umd.min.js"></script>
+<script src="/static/assets/vendor/chartjs-plugin-datalabels.min.js"></script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Crect width=%2216%22 height=%2216%22 rx=%223%22 fill=%22%230b3d6b%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/css/styles.css">
+<link rel="stylesheet" href="/static/css/medd2.css">
+</head>
+<body>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar" id="sidebar">
+  <div class="brand">
+    <div class="tri"><span style="background:#ff9933"></span><span style="background:#fff"></span><span style="background:#138808"></span></div>
+    <h1>MEDD Maharashtra</h1>
+    <p>Medical Equipment Decision Support</p>
+    <span class="fybadge">FY 2025-26</span>
+  </div>
+  <nav class="nav" id="nav">
+    <div class="sec">Overview</div>
+    <a data-page="executive" class="active"><span class="ico">▣</span> Executive Dashboard</a>
+    <a data-page="chatbot"><span class="ico">💬</span> Decision Support AI</a>
+    <div class="sec">Analysis</div>
+    <a data-page="gap"><span class="ico">▤</span> Equipment Gap</a>
+    <a data-page="procurement"><span class="ico">🛒</span> Procurement Planning</a>
+    <a data-page="netreq"><span class="ico">🧮</span> Net Requirement</a>
+    <a data-page="financial"><span class="ico">₹</span> Budget &amp; Financial</a>
+    <a data-page="condemnation"><span class="ico">🗑</span> Condemnation Dashboard</a>
+    <a data-page="eol"><span class="ico">⏳</span> End of Life Dashboard</a>
+    <a data-page="amc"><span class="ico">🛡</span> AMC / CMC Coverage</a>
+    <div class="sec">Drill-down</div>
+    <a data-page="facility"><span class="ico">🏥</span> Institute Dashboard</a>
+    <a data-page="district"><span class="ico">📍</span> Division Dashboard</a>
+    <a data-page="department"><span class="ico">🩺</span> Department Dashboard</a>
+    <a data-page="equipment"><span class="ico">🔬</span> Equipment Explorer</a>
+    <!-- [2.0] new section — existing modules above are unchanged -->
+    <div class="sec" data-perm="ingestion:read">Administration</div>
+    <a data-page="admin" data-perm="ingestion:read"><span class="ico">🗄</span> Data Management</a>
+  </nav>
+</aside>
+
+<div class="main">
+<header>
+  <button class="menuBtn" id="menuBtn">☰</button>
+  <h2 id="pageTitle">Executive Dashboard</h2><span class="fybadge">FY 2025-26</span>
+  <div class="crumb" id="crumb">Executive Dashboard</div>
+  <!-- [2.0] live data status + signed-in user -->
+  <div class="hdrRight"><div id="dataStatus" class="dataStatus"></div><div id="userBadge" class="userBadge"></div></div>
+</header>
+<div id="busyBar" class="busyBar"></div>
+<div class="wrap" style="padding-bottom:0"><div id="errBanner" class="errBanner"></div></div>
+
+<!-- shared filter bar (division + institute + equipment) -->
+<div class="wrap" style="padding-bottom:0">
+  <div class="filterbar" id="filterbar">
+    <div class="ms" id="ms-division" data-key="division" data-label="Division"></div>
+    <div class="ms" id="ms-institute" data-key="institute" data-label="Institute"></div>
+    <div class="ms" id="ms-department" data-key="department" data-label="Department"></div>
+    <div class="ms" id="ms-subcat" data-key="subcat" data-label="Sub-Category"></div>
+    <div class="ms" id="ms-equipment" data-key="equipment" data-label="Equipment"></div>
+    <div class="ms" id="ms-bedded" data-key="bedded" data-label="Bedded Capacity"></div>
+    <button class="btn" id="clearBtn" style="margin-left:auto">Clear all</button>
+  </div>
+</div>
+
+<!-- ========== PAGE: EXECUTIVE ========== -->
+<div class="wrap page" id="page-executive">
+  <p class="muted" style="margin:0 0 14px">Tap any KPI card for its decision-support breakdown. Tap a division on the map, a chart bar, or a table row to drill down.</p>
+  <div class="kpis" id="kpis"></div>
+  <div class="grid2">
+    <div class="card">
+      <h3>Division Heat Map
+        <span class="seg" id="metricSeg">
+          <button data-m="gap_pct" class="on">Utilisation %</button>
+          <button data-m="procurement">Procurement</button>
+          <button data-m="budget">Budget</button>
+        </span>
+      </h3>
+      <div class="desc" id="mapDesc"></div>
+      <div class="mapwrap" id="mapwrap">
+        <img id="mapImg" alt="Maharashtra divisions map">
+        <svg id="mapSvg" preserveAspectRatio="none" role="img" aria-label="Division heat map"></svg>
+        <div class="tip" id="mapTip"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="legend" id="mapLegend"></div>
+      <div class="divlegend" id="divLegend"></div>
+    </div>
+  </div>
+  <div class="grid2b">
+    <div class="card"><h3>Procurement Need by Division</h3><div class="desc">Tap a bar to drill: Division → Institute → Department → Equipment</div><div class="chartbox"><canvas id="procChart"></canvas></div></div>
+    <div class="card"><h3>Budget Requirement by Division</h3><div class="desc">Tap a bar to drill: Division → Institute → Department → Equipment</div><div class="chartbox"><canvas id="budChart"></canvas></div></div>
+  </div>
+  <div class="grid2b">
+    <div class="card"><h3>Division Comparison <span class="exp"><button class="xbtn" onclick="runExport('divTable','csv')">⬇ CSV</button><button class="xbtn" onclick="runExport('divTable','xls')">⬇ Excel</button></span></h3><div class="desc">Tap a row to open the division. Tap a header to sort.</div>
+      <div class="scroll"><table id="divTable"><thead><tr>
+        <th data-k="name" title="Administrative division">Division</th>
+        <th class="num" data-k="required" title="Quantity Required per NMC Minimum Standard Requirements (MSR)">Req</th>
+        <th class="num" data-k="available" title="Quantity of Equipment Available (physically present)">Avail</th>
+        <th class="num" data-k="functional" title="Quantity of Functional Equipment (working)">Func</th>
+        <th class="num" data-k="non_functional" title="Non-Functional = Available − Functional">Non-Func</th>
+        <th class="num" data-k="procurement" title="Quantity Proposed for New Procurement">Proc.</th>
+        <th class="num" data-k="gap_pct" title="Utilisation % = Functional ÷ Required (MSR) × 100. Higher = better.">Utilisation %</th>
+        <th class="num" data-k="budget" title="Budget = Proposed Procurement × unit cost">Budget ₹</th>
+      </tr></thead><tbody></tbody></table></div>
+      <div class="tcap"><b>How values are derived —</b> <code>Utilisation % = Functional ÷ Required (NMC MSR) × 100</code> (higher = better, ≥100% = norm met); <b>Non-Func = Available − Functional</b>; <b>Budget = Proposed Procurement × unit cost</b>. Hover any column header for its definition.</div></div>
+    <div class="card"><h3>Top Institutes by Utilisation % <span class="exp"><button class="xbtn" onclick="runExport('instTable','csv')">⬇ CSV</button><button class="xbtn" onclick="runExport('instTable','xls')">⬇ Excel</button></span></h3><div class="desc">Tap a row to open the institute.</div>
+      <div class="scroll"><table id="instTable"><thead><tr>
+        <th data-k="name" title="Institute / medical college">Institute</th>
+        <th class="num" data-k="functional" title="Quantity of Functional Equipment (working)">Func</th>
+        <th class="num" data-k="non_functional" title="Non-Functional = Available − Functional">Non-Func</th>
+        <th class="num" data-k="procurement" title="Quantity Proposed for New Procurement">Proc.</th>
+        <th class="num" data-k="gap_pct" title="Utilisation % = Functional ÷ Required (MSR) × 100. Higher = better.">Utilisation %</th>
+        <th class="num" data-k="budget" title="Budget = Proposed Procurement × unit cost">Budget ₹</th>
+      </tr></thead><tbody></tbody></table></div>
+      <div class="tcap"><b>How values are derived —</b> <code>Utilisation % = Functional ÷ Required (NMC MSR) × 100</code> (higher = better, ≥100% = norm met); <b>Non-Func = Available − Functional</b>; <b>Budget = Proposed Procurement × unit cost</b>. Hover any column header for its definition.</div></div>
+  </div>
+</div>
+
+<!-- generic analysis pages share one container, rendered by JS -->
+<div class="wrap page hide" id="page-gap"></div>
+<div class="wrap page hide" id="page-procurement"></div>
+<div class="wrap page hide" id="page-netreq"></div>
+<div class="wrap page hide" id="page-condemnation"></div>
+<div class="wrap page hide" id="page-eol"></div>
+<div class="wrap page hide" id="page-chatbot"></div>
+<div class="wrap page hide" id="page-financial"></div>
+<div class="wrap page hide" id="page-amc"></div>
+<div class="wrap page hide" id="page-facility"></div>
+<div class="wrap page hide" id="page-district"></div>
+<div class="wrap page hide" id="page-department"></div>
+<div class="wrap page hide" id="page-equipment"></div>
+<div class="wrap page hide" id="page-admin"></div>
+
+<!-- ========== DETAIL (KPI / division / institute) ========== -->
+<div class="wrap page hide" id="page-detail">
+  <div class="backbar"><button class="btn" id="backBtn">← Back</button><div id="detailScope" class="muted"></div></div>
+  <h2 id="detailTitle" class="secTitle"></h2>
+  <p id="detailLede" class="muted" style="margin-bottom:18px"></p>
+  <div class="statbar" id="detailStats"></div>
+  <div class="grid2">
+    <div class="card"><h3 id="detailChartTitle">Breakdown</h3><div class="desc" id="detailChartDesc"></div><div class="chartbox" style="height:330px"><canvas id="detailChart"></canvas></div></div>
+    <div class="card"><h3>Decision Support — Recommendations</h3><div class="desc">Generated from the data shown, using MEDD KPI rules.</div><div id="recs"></div></div>
+  </div>
+  <div class="grid2b">
+    <div class="card"><h3 id="detailTableTitle">Table</h3><div class="scroll tall"><table id="detailTable"></table></div><div id="detailTableCap"></div></div>
+    <div class="card"><h3 id="detailTable2Title">Table</h3><div class="scroll tall"><table id="detailTable2"></table></div><div id="detailTable2Cap"></div></div>
+  </div>
+</div>
+
+<footer id="foot"></footer>
+</div></div>
+
+
+
+<!-- [2.0] sign-in (JWT). No credentials are stored in frontend files. -->
+<div id="loginOverlay" class="loginOverlay" style="display:none">
+  <form id="loginForm" class="loginCard" autocomplete="on">
+    <div class="tri"><span style="background:#ff9933"></span><span style="background:#fff"></span><span style="background:#138808"></span></div>
+    <h1>MEDD Maharashtra</h1><p class="muted">Medical Equipment Decision Support · sign in</p>
+    <label>Username<input id="loginUser" autocomplete="username" required></label>
+    <label>Password<input id="loginPass" type="password" autocomplete="current-password" required></label>
+    <button id="loginBtn" class="btn" type="submit">Sign in</button>
+    <div id="loginMsg" class="loginMsg"></div>
+  </form>
+</div>
+
+<script src="/static/js/config.js"></script>
+<script src="/static/js/api.js"></script>
+<script src="/static/js/state.js"></script>
+<script src="/static/js/exports.js"></script>
+<script src="/static/js/charts.js"></script>
+<script src="/static/js/filters.js"></script>
+<script src="/static/js/dashboard.js"></script>
+<script src="/static/js/drilldown.js"></script>
+<script src="/static/js/dataset-explorer.js"></script>
+<script src="/static/js/chatbot.js"></script>
+<script src="/static/js/realtime.js"></script>
+<script src="/static/js/auth.js"></script>
+<script src="/static/js/admin.js"></script>
+<script src="/static/js/main.js"></script>
+</body>
+</html>

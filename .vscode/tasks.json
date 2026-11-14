@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {"label": "1. Install backend dependencies", "type": "shell", "command": "python -m pip install -r requirements.txt",
+     "options": {"cwd": "${workspaceFolder}/backend"}, "problemMatcher": []},
+    {"label": "2. Set up database (roles, migrations, reference data, admin)", "type": "shell",
+     "command": "python scripts/setup_database.py", "options": {"cwd": "${workspaceFolder}/backend"}, "problemMatcher": []},
+    {"label": "3. Start MEDD 2.0 (http://127.0.0.1:8000)", "type": "shell",
+     "command": "python -m uvicorn app.main:app --host 127.0.0.1 --port 8000", "isBackground": true,
+     "options": {"cwd": "${workspaceFolder}/backend"}, "problemMatcher": []},
+    {"label": "Ingest a file now (prompt)", "type": "shell", "command": "python scripts/ingest_file.py \"${input:filePath}\" --copy",
+     "options": {"cwd": "${workspaceFolder}/backend"}, "problemMatcher": []},
+    {"label": "Run all tests", "type": "shell", "command": "python -m pytest tests -v",
+     "options": {"cwd": "${workspaceFolder}/backend"}, "group": "test", "problemMatcher": []},
+    {"label": "Backup database", "type": "shell", "command": "python scripts/backup_database.py",
+     "options": {"cwd": "${workspaceFolder}/backend"}, "problemMatcher": []}
+  ],
+  "inputs": [{"id": "filePath", "type": "promptString", "description": "Full path of the Excel/CSV/JSON file"}]
+}
